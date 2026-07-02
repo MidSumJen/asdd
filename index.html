@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>로또 번호 생성기</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div class="header-left">
+        <div class="header-icon">🎱</div>
+        <div>
+          <h1>로또 번호 생성기</h1>
+          <p class="subtitle">조건을 설정하고 나만의 번호를 찾아보세요</p>
+        </div>
+      </div>
+      <button class="theme-toggle" id="themeToggle" title="라이트/다크 모드 전환">🌙</button>
+    </header>
+
+    <div class="main-layout">
+      <!-- ── 왼쪽: 조건 설정 ── -->
+      <div class="left-panel">
+
+        <!-- 프리셋 -->
+        <section class="section">
+          <div class="section-label">조합 스타일</div>
+          <div class="preset-grid">
+            <button class="preset-btn" data-preset="balanced">⚖️ 균형형</button>
+            <button class="preset-btn" data-preset="high">🔥 고합계형</button>
+            <button class="preset-btn" data-preset="noconsec">🚫 연속수 없음</button>
+            <button class="preset-btn" data-preset="recommend">✨ 처음 추천</button>
+          </div>
+        </section>
+
+        <!-- 기본 필터 -->
+        <section class="section">
+          <div class="section-label">기본 필터</div>
+          <div class="filter-grid">
+
+            <div class="filter-row" data-filter="numRange">
+              <label class="toggle-wrap"><input type="checkbox" class="filter-toggle" id="tog_numRange" checked/><span class="toggle-slider"></span></label>
+              <span class="filter-label">숫자 범위</span>
+              <div class="filter-control">
+                <div class="range-inputs">
+                  <input type="number" id="numMin" class="num-input sm" value="1" min="1" max="45"/>
+                  <span class="tilde">~</span>
+                  <input type="number" id="numMax" class="num-input sm" value="45" min="1" max="45"/>
+                </div>
+              </div>
+            </div>
+
+            <div class="filter-row" data-filter="sumRange">
+              <label class="toggle-wrap"><input type="checkbox" class="filter-toggle" id="tog_sumRange" checked/><span class="toggle-slider"></span></label>
+              <span class="filter-label">총합 범위</span>
+              <div class="filter-control">
+                <div class="range-inputs">
+                  <input type="number" id="sumMin" class="num-input sm" value="90" min="21" max="255"/>
+                  <span class="tilde">~</span>
+                  <input type="number" id="sumMax" class="num-input sm" value="180" min="21" max="255"/>
+                </div>
+              </div>
+            </div>
+
+            <div class="filter-row" data-filter="acRange">
+              <label class="toggle-wrap"><input type="checkbox" class="filter-toggle" id="tog_acRange" checked/><span class="toggle-slider"></span></label>
+              <span class="filter-label">AC값 범위</span>
+              <div class="filter-control">
+                <div class="range-inputs">
+                  <input type="number" id="acMin" class="num-input sm" value="7" min="0" max="10"/>
+                  <span class="tilde">~</span>
+                  <input type="number" id="acMax" class="num-input sm" value="10" min="0" max="10"/>
+                </div>
+              </div>
+            </div>
+
+            <div class="filter-row" data-filter="evenCount">
+              <label class="toggle-wrap"><input type="checkbox" class="filter-toggle" id="tog_evenCount"/><span class="toggle-slider"></span></label>
+              <span class="filter-label">짝수 개수</span>
+              <div class="filter-control">
+                <div class="range-inputs">
+                  <input type="number" id="evenMin" class="num-input sm" value="2" min="0" max="6"/>
+                  <span class="tilde">~</span>
+                  <input type="number" id="evenMax" class="num-input sm" value="4" min="0" max="6"/>
+                  <span class="filter-unit">개</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="filter-row" data-filter="consecMax">
+              <label class="toggle-wrap"><input type="checkbox" class="filter-toggle" id="tog_consecMax"/><span class="toggle-slider"></span></label>
+              <span class="filter-label">연속수 최대</span>
+              <div class="filter-control">
+                <select id="consecMax" class="select-input">
+                  <option value="0">없음</option>
+                  <option value="1" selected>1쌍</option>
+                  <option value="2">2쌍</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="filter-row" data-filter="sameTensMax">
+              <label class="toggle-wrap"><input type="checkbox" class="filter-toggle" id="tog_sameTensMax"/><span class="toggle-slider"></span></label>
+              <span class="filter-label">동일 십의자리 최대</span>
+              <div class="filter-control">
+                <select id="sameTensMax" class="select-input">
+                  <option value="1">1개</option>
+                  <option value="2" selected>2개</option>
+                  <option value="3">3개</option>
+                </select>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- 고급 필터 -->
+        <section class="section">
+          <div class="section-label">고급 필터</div>
+          <div class="filter-grid">
+
+            <div class="filter-row" data-filter="stdRange">
+              <label class="toggle-wrap"><input type="checkbox" class="filter-toggle" id="tog_stdRange"/><span class="toggle-slider"></span></label>
+              <span class="filter-label">표준편차 범위</span>
+              <div class="filter-control">
+                <div class="range-inputs">
+                  <input type="number" id="stdMin" class="num-input sm" value="0" min="0" max="20" step="0.1"/>
+                  <span class="tilde">~</span>
+                  <input type="number" id="stdMax" class="num-input sm" value="20" min="0" max="20" step="0.1"/>
+                </div>
+              </div>
+            </div>
+
+            <div class="filter-row" data-filter="tailRange">
+              <label class="toggle-wrap"><input type="checkbox" class="filter-toggle" id="tog_tailRange"/><span class="toggle-slider"></span></label>
+              <span class="filter-label">끝수합 범위</span>
+              <div class="filter-control">
+                <div class="range-inputs">
+                  <input type="number" id="tailMin" class="num-input sm" value="0" min="0" max="54"/>
+                  <span class="tilde">~</span>
+                  <input type="number" id="tailMax" class="num-input sm" value="54" min="0" max="54"/>
+                </div>
+              </div>
+            </div>
+
+            <div class="filter-row" data-filter="primeCount">
+              <label class="toggle-wrap"><input type="checkbox" class="filter-toggle" id="tog_primeCount"/><span class="toggle-slider"></span></label>
+              <span class="filter-label">소수 개수</span>
+              <div class="filter-control">
+                <select id="primeCount" class="select-input">
+                  <option value="0">0개</option>
+                  <option value="1">1개</option>
+                  <option value="2">2개</option>
+                  <option value="3" selected>3개</option>
+                  <option value="4">4개</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="filter-row" data-filter="compositeCount">
+              <label class="toggle-wrap"><input type="checkbox" class="filter-toggle" id="tog_compositeCount"/><span class="toggle-slider"></span></label>
+              <span class="filter-label">합성수 개수</span>
+              <div class="filter-control">
+                <select id="compositeCount" class="select-input">
+                  <option value="0">0개</option>
+                  <option value="1">1개</option>
+                  <option value="2">2개</option>
+                  <option value="3" selected>3개</option>
+                  <option value="4">4개</option>
+                  <option value="5">5개</option>
+                  <option value="6">6개</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="filter-row" data-filter="perfectSqCount">
+              <label class="toggle-wrap"><input type="checkbox" class="filter-toggle" id="tog_perfectSqCount"/><span class="toggle-slider"></span></label>
+              <span class="filter-label">완전제곱수 개수</span>
+              <div class="filter-control">
+                <select id="perfectSqCount" class="select-input">
+                  <option value="0" selected>0개</option>
+                  <option value="1">1개</option>
+                  <option value="2">2개</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="filter-row" data-filter="highLow">
+              <label class="toggle-wrap"><input type="checkbox" class="filter-toggle" id="tog_highLow"/><span class="toggle-slider"></span></label>
+              <span class="filter-label">고저 비율</span>
+              <div class="filter-control">
+                <select id="highLow" class="select-input">
+                  <option value="3:3">고3 저3</option>
+                  <option value="4:2">고4 저2</option>
+                  <option value="2:4">고2 저4</option>
+                  <option value="5:1">고5 저1</option>
+                  <option value="1:5">고1 저5</option>
+                </select>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- 고정수 + 제외수 -->
+        <section class="section">
+          <div class="card full-card fixed-card">
+            <div class="ball-tab-header">
+              <button class="ball-tab active" id="tabFixed">
+                🟢 고정수 <span class="badge-fixed" id="fixedBadge">최대 5개</span>
+              </button>
+              <button class="ball-tab" id="tabExclude">
+                🔴 제외수 <span class="badge-exclude" id="excludeBadge">0개</span>
+              </button>
+              <button class="clear-fixed-btn" id="clearFixedBtn">초기화</button>
+            </div>
+            <div id="fixedPanel">
+              <div class="hint" style="margin-bottom:10px;">반드시 포함될 숫자를 클릭해서 선택하세요. (최대 5개)</div>
+              <div class="fixed-selected" id="fixedSelected"><span class="fixed-empty">선택된 고정수 없음</span></div>
+            </div>
+            <div id="excludePanel" class="hidden">
+              <div class="hint" style="margin-bottom:10px;">생성에서 제외할 숫자를 클릭해서 선택하세요.</div>
+              <div class="fixed-selected" id="excludeSelected"><span class="fixed-empty">선택된 제외수 없음</span></div>
+            </div>
+            <div class="num-grid" id="numGrid"></div>
+          </div>
+        </section>
+
+        <!-- 생성 -->
+        <div class="generate-area">
+          <div class="count-row">
+            <label class="count-label">생성 개수</label>
+            <div class="count-btns">
+              <button class="count-btn active" data-count="1">1</button>
+              <button class="count-btn" data-count="3">3</button>
+              <button class="count-btn" data-count="5">5</button>
+              <button class="count-btn" data-count="10">10</button>
+            </div>
+          </div>
+          <button class="generate-btn" id="generateBtn"><span id="btnText">번호 생성</span></button>
+        </div>
+
+        <div class="footer">조건이 엄격할수록 생성에 시간이 걸릴 수 있습니다. · 세팅은 자동 저장됩니다.</div>
+      </div>
+
+      <!-- ── 오른쪽: 분석 + 결과 ── -->
+      <div class="right-panel">
+        <div class="analyze-area">
+          <div class="analyze-header">
+            <span class="result-title">조합 분석기</span>
+            <button class="add-analyze-btn" id="addAnalyzeBtn">+ 줄 추가</button>
+          </div>
+          <div class="analyze-body">
+            <div id="analyzeRows"></div>
+            <div id="analyzeResults"></div>
+          </div>
+        </div>
+
+        <div id="resultArea" class="result-area">
+          <div class="result-header">
+            <span class="result-title">생성된 번호</span>
+            <button class="copy-all-btn" id="copyAllBtn">전체 복사</button>
+          </div>
+          <div id="resultList" class="result-list"></div>
+          <div id="noResult" class="no-result hidden">⚠️ 조건에 맞는 번호를 찾지 못했습니다.<br>조건을 조금 완화해 보세요.</div>
+          <div id="emptyResult" class="empty-result">
+            <div class="empty-icon">🎯</div>
+            <div class="empty-text">번호를 생성하면<br>여기에 표시됩니다</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
