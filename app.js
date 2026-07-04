@@ -4,6 +4,7 @@
 let generateCount = 1;
 const fixedNums   = new Set();
 const excludeNums = new Set();
+const poolNums    = new Set(); // 범위수
 const MAX_FIXED   = 5;
 let activeTab     = 'fixed';
 
@@ -59,10 +60,12 @@ function analyzeNums(nums) {
 
 // ── 토글 헬퍼 ────────────────────────────────────────
 function isOn(id) { const el=document.getElementById('tog_'+id); return el?el.checked:false; }
+
 function applyToggleState(id, on) {
   const row=document.querySelector(`.filter-row[data-filter="${id}"]`);
   if (row) row.classList.toggle('filter-off', !on);
 }
+
 function bindToggles() {
   TOGGLE_IDS.forEach(id=>{
     const el=document.getElementById('tog_'+id);
@@ -71,13 +74,13 @@ function bindToggles() {
   });
 }
 
-// ── localStorage (chrome.storage 대체) ────────────────
+// ── chrome.storage ─────────────────────────────────────
 const STORAGE_KEY='lotto_settings_v3';
 
 function getFormValues() {
   const toggles={};
   TOGGLE_IDS.forEach(id=>{ toggles['tog_'+id]=isOn(id); });
-  const g=id=>{ const el=document.getElementById(id); return el?el.value:''; };
+  const g = id => { const el=document.getElementById(id); return el?el.value:''; };
   return {
     numMin:g('numMin'), numMax:g('numMax'),
     sumMin:g('sumMin'), sumMax:g('sumMax'),
@@ -88,21 +91,15 @@ function getFormValues() {
     tailMin:g('tailMin'), tailMax:g('tailMax'),
     primeCount:g('primeCount'), compositeCount:g('compositeCount'),
     perfectSqCount:g('perfectSqCount'), highLow:g('highLow'),
-    generateCount, fixedNums:[...fixedNums], excludeNums:[...excludeNums],
+    generateCount, fixedNums:[...fixedNums], excludeNums:[...excludeNums], poolNums:[...poolNums],
     theme:document.documentElement.getAttribute('data-theme')||'dark',
     ...toggles
   };
 }
 
-function saveSettings() {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(getFormValues())); } catch(e) {}
-}
-
+function saveSettings() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify([STORAGE_KEY]:getFormValues()}); }
 function loadSettings(cb) {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    cb(raw ? JSON.parse(raw) : null);
-  } catch(e) { cb(null); }
+  try { const raw=localStorage.getItem(STORAGE_KEY); cb(raw?JSON.parse(raw):null); } catch(e) { cb(null); }
 }
 
 function applyStoredSettings(s) {
@@ -114,7 +111,7 @@ function applyStoredSettings(s) {
   });
   TOGGLE_IDS.forEach(id=>{
     const el=document.getElementById('tog_'+id);
-    if(el&&s['tog_'+id]!==undefined){ el.checked=s['tog_'+id]; applyToggleState(id,el.checked); }
+    if (el&&s['tog_'+id]!==undefined){ el.checked=s['tog_'+id]; applyToggleState(id,el.checked); }
   });
   if (s.generateCount) {
     generateCount=s.generateCount;
@@ -122,6 +119,7 @@ function applyStoredSettings(s) {
   }
   if (s.fixedNums)   s.fixedNums.forEach(n=>fixedNums.add(n));
   if (s.excludeNums) s.excludeNums.forEach(n=>excludeNums.add(n));
+  if (s.poolNums)    s.poolNums.forEach(n=>poolNums.add(n));
   if (s.theme) {
     document.documentElement.setAttribute('data-theme',s.theme);
     document.getElementById('themeToggle').textContent=s.theme==='dark'?'🌙':'☀️';
@@ -133,25 +131,25 @@ function bindAutoSave() {
    'consecMax','sameTensMax','stdMin','stdMax','tailMin','tailMax',
    'primeCount','compositeCount','perfectSqCount','highLow'].forEach(id=>{
     const el=document.getElementById(id);
-    if(el) el.addEventListener('change',saveSettings);
+    if (el) el.addEventListener('change',saveSettings);
   });
 }
 
 // ── 유효성 검사 ───────────────────────────────────────
 function isValid(nums) {
   const s=[...nums].sort((a,b)=>a-b);
-  if(isOn('numRange'))      { const nMin=+document.getElementById('numMin').value,nMax=+document.getElementById('numMax').value; if(s[0]<nMin||s[5]>nMax) return false; }
-  if(isOn('sumRange'))      { const sMin=+document.getElementById('sumMin').value,sMax=+document.getElementById('sumMax').value; const sum=s.reduce((a,b)=>a+b,0); if(sum<sMin||sum>sMax) return false; }
-  if(isOn('acRange'))       { const aMin=+document.getElementById('acMin').value,aMax=+document.getElementById('acMax').value; if(calcAC(s)<aMin||calcAC(s)>aMax) return false; }
-  if(isOn('evenCount'))     { const eMin=+document.getElementById('evenMin').value,eMax=+document.getElementById('evenMax').value; const ev=s.filter(n=>n%2===0).length; if(ev<eMin||ev>eMax) return false; }
-  if(isOn('consecMax'))     { if(countConsecPairs(s)>+document.getElementById('consecMax').value) return false; }
-  if(isOn('sameTensMax'))   { if(countSameTens(s)>+document.getElementById('sameTensMax').value) return false; }
-  if(isOn('stdRange'))      { const sdMin=+document.getElementById('stdMin').value,sdMax=+document.getElementById('stdMax').value; const std=calcStd(s); if(std<sdMin||std>sdMax) return false; }
-  if(isOn('tailRange'))     { const tlMin=+document.getElementById('tailMin').value,tlMax=+document.getElementById('tailMax').value; if(calcTailSum(s)<tlMin||calcTailSum(s)>tlMax) return false; }
-  if(isOn('primeCount'))    { if(countPrimes(s)!==+document.getElementById('primeCount').value) return false; }
-  if(isOn('compositeCount')){ if(countComposite(s)!==+document.getElementById('compositeCount').value) return false; }
-  if(isOn('perfectSqCount')){ if(countPerfectSq(s)!==+document.getElementById('perfectSqCount').value) return false; }
-  if(isOn('highLow'))       { const [h,l]=document.getElementById('highLow').value.split(':').map(Number); const {high,low}=calcHighLow(s); if(high!==h||low!==l) return false; }
+  if (isOn('numRange'))     { const nMin=+document.getElementById('numMin').value,nMax=+document.getElementById('numMax').value; if(s[0]<nMin||s[5]>nMax) return false; }
+  if (isOn('sumRange'))     { const sMin=+document.getElementById('sumMin').value,sMax=+document.getElementById('sumMax').value; const sum=s.reduce((a,b)=>a+b,0); if(sum<sMin||sum>sMax) return false; }
+  if (isOn('acRange'))      { const aMin=+document.getElementById('acMin').value,aMax=+document.getElementById('acMax').value; const ac=calcAC(s); if(ac<aMin||ac>aMax) return false; }
+  if (isOn('evenCount'))    { const eMin=+document.getElementById('evenMin').value,eMax=+document.getElementById('evenMax').value; const ev=s.filter(n=>n%2===0).length; if(ev<eMin||ev>eMax) return false; }
+  if (isOn('consecMax'))    { if(countConsecPairs(s)>+document.getElementById('consecMax').value) return false; }
+  if (isOn('sameTensMax'))  { if(countSameTens(s)>+document.getElementById('sameTensMax').value) return false; }
+  if (isOn('stdRange'))     { const sdMin=+document.getElementById('stdMin').value,sdMax=+document.getElementById('stdMax').value; const std=calcStd(s); if(std<sdMin||std>sdMax) return false; }
+  if (isOn('tailRange'))    { const tlMin=+document.getElementById('tailMin').value,tlMax=+document.getElementById('tailMax').value; if(calcTailSum(s)<tlMin||calcTailSum(s)>tlMax) return false; }
+  if (isOn('primeCount'))   { if(countPrimes(s)!==+document.getElementById('primeCount').value) return false; }
+  if (isOn('compositeCount')){ if(countComposite(s)!==+document.getElementById('compositeCount').value) return false; }
+  if (isOn('perfectSqCount')){ if(countPerfectSq(s)!==+document.getElementById('perfectSqCount').value) return false; }
+  if (isOn('highLow'))      { const [h,l]=document.getElementById('highLow').value.split(':').map(Number); const {high,low}=calcHighLow(s); if(high!==h||low!==l) return false; }
   return true;
 }
 
@@ -160,16 +158,27 @@ function generateOne(maxTries=100000) {
   const nMin=isOn('numRange')?+document.getElementById('numMin').value:1;
   const nMax=isOn('numRange')?+document.getElementById('numMax').value:45;
   const fixed=[...fixedNums];
-  if(fixed.some(n=>n<nMin||n>nMax)) return null;
+  if (fixed.some(n=>n<nMin||n>nMax)) return null;
   const remaining=6-fixed.length;
+
+  // 범위수 6개 이상 선택 시 해당 풀에서만 추출
+  const usePool = poolNums.size >= 6;
   const pool=[];
-  for(let i=nMin;i<=nMax;i++) if(!fixedNums.has(i)&&!excludeNums.has(i)) pool.push(i);
-  if(pool.length<remaining) return null;
-  for(let t=0;t<maxTries;t++){
+  for (let i=nMin;i<=nMax;i++) {
+    if (fixedNums.has(i)||excludeNums.has(i)) continue;
+    if (usePool && !poolNums.has(i)) continue;
+    pool.push(i);
+  }
+  if (pool.length<remaining) return null;
+
+  // 범위수 탭 활성 && 필터 적용 토글 확인
+  const useFilter = !usePool || (document.getElementById('poolUseFilter')?.checked ?? true);
+
+  for (let t=0;t<maxTries;t++) {
     const arr=[...pool];
-    for(let i=0;i<remaining;i++){const j=i+Math.floor(Math.random()*(arr.length-i));[arr[i],arr[j]]=[arr[j],arr[i]];}
+    for (let i=0;i<remaining;i++){const j=i+Math.floor(Math.random()*(arr.length-i));[arr[i],arr[j]]=[arr[j],arr[i]];}
     const pick=[...fixed,...arr.slice(0,remaining)].sort((a,b)=>a-b);
-    if(isValid(pick)) return pick;
+    if (!useFilter || isValid(pick)) return pick;
   }
   return null;
 }
@@ -226,86 +235,139 @@ function copyAll() {
 }
 
 // ── 조합 분석기 (다중) ───────────────────────────────
-let analyzeRowCount=0;
+let analyzeRowCount = 0;
 
 function addAnalyzeRow() {
-  const idx=++analyzeRowCount;
-  const container=document.getElementById('analyzeRows');
-  const rowEl=document.createElement('div');
-  rowEl.className='analyze-input-row'; rowEl.dataset.idx=idx;
-  rowEl.innerHTML=`
+  const idx = ++analyzeRowCount;
+  const container = document.getElementById('analyzeRows');
+  const rowEl = document.createElement('div');
+  rowEl.className = 'analyze-input-row';
+  rowEl.dataset.idx = idx;
+  rowEl.innerHTML = `
     <input type="text" class="analyze-input" data-idx="${idx}" placeholder="예: 1, 7, 13, 24, 35, 42" maxlength="30"/>
     <button class="analyze-btn" data-idx="${idx}">분석</button>
     <button class="analyze-del-btn" data-idx="${idx}" title="삭제">✕</button>
   `;
   container.appendChild(rowEl);
-  rowEl.querySelector('.analyze-btn').addEventListener('click',()=>runAnalyze(idx));
-  rowEl.querySelector('.analyze-input').addEventListener('keydown',e=>{if(e.key==='Enter') runAnalyze(idx);});
-  rowEl.querySelector('.analyze-del-btn').addEventListener('click',()=>{
+
+  rowEl.querySelector('.analyze-btn').addEventListener('click', ()=>runAnalyze(idx));
+  rowEl.querySelector('.analyze-input').addEventListener('keydown', e=>{ if(e.key==='Enter') runAnalyze(idx); });
+  rowEl.querySelector('.analyze-del-btn').addEventListener('click', ()=>{
     rowEl.remove();
     document.querySelector(`.analyze-result-block[data-idx="${idx}"]`)?.remove();
   });
 }
 
 function runAnalyze(idx) {
-  const inputEl=document.querySelector(`.analyze-input[data-idx="${idx}"]`);
-  if(!inputEl) return;
+  const inputEl = document.querySelector(`.analyze-input[data-idx="${idx}"]`);
+  if (!inputEl) return;
+  const raw = inputEl.value;
+
+  // 기존 결과 블록 제거
   document.querySelector(`.analyze-result-block[data-idx="${idx}"]`)?.remove();
-  const nums=inputEl.value.split(/[\s,\/]+/).map(s=>parseInt(s)).filter(n=>!isNaN(n));
-  const resultsContainer=document.getElementById('analyzeResults');
-  const block=document.createElement('div');
-  block.className='analyze-result-block'; block.dataset.idx=idx;
-  if(nums.length!==6){block.innerHTML=`<div class="analyze-error">⚠️ 숫자 6개가 필요해요. (현재 ${nums.length}개)</div>`;resultsContainer.appendChild(block);return;}
-  if(nums.some(n=>n<1||n>45)){block.innerHTML=`<div class="analyze-error">⚠️ 모든 숫자는 1~45 사이여야 해요.</div>`;resultsContainer.appendChild(block);return;}
-  if(new Set(nums).size!==6){block.innerHTML=`<div class="analyze-error">⚠️ 중복된 숫자가 있어요.</div>`;resultsContainer.appendChild(block);return;}
-  const a=analyzeNums(nums);
-  const ballsHtml=a.sorted.map(n=>`<div class="ball ${ballClass(n)}">${n}</div>`).join('');
-  block.innerHTML=`
+
+  const nums = raw.split(/[\s,\/]+/).map(s=>parseInt(s)).filter(n=>!isNaN(n));
+  const resultsContainer = document.getElementById('analyzeResults');
+  const block = document.createElement('div');
+  block.className = 'analyze-result-block';
+  block.dataset.idx = idx;
+
+  if (nums.length!==6) { block.innerHTML=`<div class="analyze-error">⚠️ 숫자 6개가 필요해요. (현재 ${nums.length}개)</div>`; resultsContainer.appendChild(block); return; }
+  if (nums.some(n=>n<1||n>45)) { block.innerHTML=`<div class="analyze-error">⚠️ 모든 숫자는 1~45 사이여야 해요.</div>`; resultsContainer.appendChild(block); return; }
+  if (new Set(nums).size!==6) { block.innerHTML=`<div class="analyze-error">⚠️ 중복된 숫자가 있어요.</div>`; resultsContainer.appendChild(block); return; }
+
+  const a = analyzeNums(nums);
+
+  // 볼 HTML
+  const ballsHtml = a.sorted.map(n=>`<div class="ball ${ballClass(n)}">${n}</div>`).join('');
+
+  block.innerHTML = `
     <div class="analyze-result">
       <div class="analyze-balls">${ballsHtml}</div>
-      ${buildStatTable(a,'stat-table')}
+      <table class="stat-table">
+        <tr><td>표준편차</td><td>${a.std.toFixed(4)}</td><td>AC</td><td>${a.ac}</td></tr>
+        <tr><td>홀짝</td><td>홀(${a.odd}), 짝(${a.even})</td><td>합</td><td>${a.sum}</td></tr>
+        <tr><td>고저</td><td>고(${a.hl.high}), 저(${a.hl.low})</td><td>끝수합</td><td>${a.tail}</td></tr>
+        <tr><td>동일 끝수</td><td>${a.sameTail}</td><td>연속수</td><td>${a.consec}쌍</td></tr>
+        <tr><td>소수</td><td>${a.primes}개</td><td>합성수</td><td>${a.comp}개</td></tr>
+        <tr><td>완전제곱수</td><td>${a.psq}개</td><td>배수</td><td>${a.mults}</td></tr>
+      </table>
     </div>
   `;
   resultsContainer.appendChild(block);
 }
 
-// ── 고정수/제외수 UI ─────────────────────────────────
+// ── 고정수/제외수/범위수 UI ──────────────────────────
 function updateGridUI() {
   document.querySelectorAll('.ng-btn').forEach(btn=>{
-    const n=parseInt(btn.dataset.n), isFixed=fixedNums.has(n), isExclude=excludeNums.has(n);
-    btn.classList.remove('ng-selected-fixed','ng-selected-exclude','ng-disabled');
-    if(isFixed) btn.classList.add('ng-selected-fixed');
+    const n=parseInt(btn.dataset.n);
+    const isFixed=fixedNums.has(n), isExclude=excludeNums.has(n), isPool=poolNums.has(n);
+    btn.classList.remove('ng-selected-fixed','ng-selected-exclude','ng-selected-pool','ng-disabled');
+    if(isFixed)   btn.classList.add('ng-selected-fixed');
     if(isExclude) btn.classList.add('ng-selected-exclude');
-    if(activeTab==='fixed'){if(isExclude) btn.classList.add('ng-disabled'); else if(fixedNums.size>=MAX_FIXED&&!isFixed) btn.classList.add('ng-disabled');}
-    if(activeTab==='exclude'&&isFixed) btn.classList.add('ng-disabled');
+    if(isPool)    btn.classList.add('ng-selected-pool');
+    if(activeTab==='fixed'){
+      if(isExclude||isPool) btn.classList.add('ng-disabled');
+      else if(fixedNums.size>=MAX_FIXED&&!isFixed) btn.classList.add('ng-disabled');
+    }
+    if(activeTab==='exclude'){ if(isFixed||isPool)    btn.classList.add('ng-disabled'); }
+    if(activeTab==='pool'){    if(isFixed||isExclude)  btn.classList.add('ng-disabled'); }
   });
 }
+
 function updateFixedSelectedUI() {
   const sel=document.getElementById('fixedSelected'); sel.innerHTML='';
   if(!fixedNums.size){sel.innerHTML='<span class="fixed-empty">선택된 고정수 없음</span>';}
   else{[...fixedNums].sort((a,b)=>a-b).forEach(n=>{const t=document.createElement('div');t.className=`fixed-tag ng-${ballClass(n)}`;t.textContent=n;t.onclick=()=>{fixedNums.delete(n);updateAll();saveSettings();};sel.appendChild(t);});}
   document.getElementById('fixedBadge').textContent=fixedNums.size?`${fixedNums.size}/${MAX_FIXED}개`:'최대 5개';
 }
+
 function updateExcludeSelectedUI() {
   const sel=document.getElementById('excludeSelected'); sel.innerHTML='';
   if(!excludeNums.size){sel.innerHTML='<span class="fixed-empty">선택된 제외수 없음</span>';}
   else{[...excludeNums].sort((a,b)=>a-b).forEach(n=>{const t=document.createElement('div');t.className=`fixed-tag ng-${ballClass(n)}`;t.style.filter='brightness(0.55) saturate(0.5)';t.style.outline='2px solid #e07070';t.textContent=n;t.onclick=()=>{excludeNums.delete(n);updateAll();saveSettings();};sel.appendChild(t);});}
   document.getElementById('excludeBadge').textContent=`${excludeNums.size}개`;
 }
-function updateAll(){ updateFixedSelectedUI(); updateExcludeSelectedUI(); updateGridUI(); }
+
+function updatePoolSelectedUI() {
+  const sel=document.getElementById('poolSelected'); sel.innerHTML='';
+  if(!poolNums.size){sel.innerHTML='<span class="fixed-empty">선택된 범위수 없음</span>';}
+  else{[...poolNums].sort((a,b)=>a-b).forEach(n=>{const t=document.createElement('div');t.className=`pool-tag ng-${ballClass(n)}`;t.textContent=n;t.title=`${n} 클릭 시 해제`;t.onclick=()=>{poolNums.delete(n);updateAll();saveSettings();};sel.appendChild(t);});}
+  const badge=document.getElementById('poolBadge');
+  badge.textContent=poolNums.size>0?`${poolNums.size}개 선택`:'0개';
+  // 6개 미만이면 경고
+  if(poolNums.size>0&&poolNums.size<6) badge.style.color='#e07070';
+  else badge.style.color='';
+}
+
+function updateAll(){ updateFixedSelectedUI(); updateExcludeSelectedUI(); updatePoolSelectedUI(); updateGridUI(); }
+
 function toggleBall(n) {
-  if(activeTab==='fixed'){if(excludeNums.has(n))return;if(fixedNums.has(n))fixedNums.delete(n);else{if(fixedNums.size>=MAX_FIXED)return;fixedNums.add(n);}}
-  else{if(fixedNums.has(n))return;if(excludeNums.has(n))excludeNums.delete(n);else excludeNums.add(n);}
+  if(activeTab==='fixed'){
+    if(excludeNums.has(n)||poolNums.has(n)) return;
+    if(fixedNums.has(n)) fixedNums.delete(n);
+    else{ if(fixedNums.size>=MAX_FIXED) return; fixedNums.add(n); }
+  } else if(activeTab==='exclude'){
+    if(fixedNums.has(n)||poolNums.has(n)) return;
+    if(excludeNums.has(n)) excludeNums.delete(n); else excludeNums.add(n);
+  } else {
+    if(fixedNums.has(n)||excludeNums.has(n)) return;
+    if(poolNums.has(n)) poolNums.delete(n); else poolNums.add(n);
+  }
   updateAll(); saveSettings();
 }
+
 function switchTab(tab) {
   activeTab=tab;
   document.getElementById('tabFixed').classList.toggle('active',tab==='fixed');
   document.getElementById('tabExclude').classList.toggle('active',tab==='exclude');
+  document.getElementById('tabPool').classList.toggle('active',tab==='pool');
   document.getElementById('fixedPanel').classList.toggle('hidden',tab!=='fixed');
   document.getElementById('excludePanel').classList.toggle('hidden',tab!=='exclude');
+  document.getElementById('poolPanel').classList.toggle('hidden',tab!=='pool');
   updateGridUI();
 }
+
 function buildNumGrid() {
   const grid=document.getElementById('numGrid');
   for(let i=1;i<=45;i++){
@@ -323,11 +385,15 @@ const PRESETS={
   noconsec: {numMin:1,numMax:45,sumMin:80,sumMax:200,acMin:6,acMax:10,evenMin:0,evenMax:6,consecMax:'0',sameTensMax:'2',stdMin:0,stdMax:20,tailMin:0,tailMax:54,primeCount:'2',compositeCount:'3',perfectSqCount:'0',highLow:'3:3',tog_numRange:true,tog_sumRange:true,tog_acRange:true,tog_evenCount:false,tog_consecMax:true,tog_sameTensMax:false,tog_stdRange:false,tog_tailRange:false,tog_primeCount:false,tog_compositeCount:false,tog_perfectSqCount:false,tog_highLow:false},
   recommend:{numMin:1,numMax:45,sumMin:100,sumMax:170,acMin:7,acMax:10,evenMin:2,evenMax:4,consecMax:'1',sameTensMax:'2',stdMin:6,stdMax:16,tailMin:0,tailMax:54,primeCount:'2',compositeCount:'3',perfectSqCount:'0',highLow:'3:3',tog_numRange:true,tog_sumRange:true,tog_acRange:true,tog_evenCount:true,tog_consecMax:true,tog_sameTensMax:true,tog_stdRange:true,tog_tailRange:false,tog_primeCount:false,tog_compositeCount:false,tog_perfectSqCount:false,tog_highLow:false}
 };
+
 function applyPreset(name) {
   const p=PRESETS[name]; if(!p) return;
   Object.entries(p).forEach(([id,val])=>{
-    if(id.startsWith('tog_')){const el=document.getElementById(id);if(el){el.checked=val;applyToggleState(id.replace('tog_',''),val);}}
-    else{const el=document.getElementById(id);if(el) el.value=val;}
+    if(id.startsWith('tog_')){
+      const el=document.getElementById(id); if(el){el.checked=val;applyToggleState(id.replace('tog_',''),val);}
+    } else {
+      const el=document.getElementById(id); if(el) el.value=val;
+    }
   });
   document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
   document.querySelector(`[data-preset="${name}"]`)?.classList.add('active');
@@ -338,9 +404,10 @@ function applyPreset(name) {
 document.addEventListener('DOMContentLoaded', ()=>{
   buildNumGrid();
 
+  // 기본 토글 ON 상태 초기화
   ['numRange','sumRange','acRange'].forEach(id=>{
     const el=document.getElementById('tog_'+id);
-    if(el){el.checked=true;applyToggleState(id,true);}
+    if(el){ el.checked=true; applyToggleState(id,true); }
   });
 
   loadSettings(s=>{ applyStoredSettings(s); updateAll(); });
@@ -348,6 +415,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   bindToggles();
 
   document.querySelectorAll('.preset-btn').forEach(btn=>btn.addEventListener('click',()=>applyPreset(btn.dataset.preset)));
+
   document.querySelectorAll('.count-btn').forEach(btn=>btn.addEventListener('click',()=>{
     document.querySelectorAll('.count-btn').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active'); generateCount=parseInt(btn.dataset.count); saveSettings();
@@ -363,18 +431,21 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
   document.getElementById('tabFixed').addEventListener('click',   ()=>switchTab('fixed'));
   document.getElementById('tabExclude').addEventListener('click', ()=>switchTab('exclude'));
+  document.getElementById('tabPool').addEventListener('click',    ()=>switchTab('pool'));
   document.getElementById('clearFixedBtn').addEventListener('click',()=>{
-    if(activeTab==='fixed') fixedNums.clear(); else excludeNums.clear();
+    if(activeTab==='fixed') fixedNums.clear();
+    else if(activeTab==='exclude') excludeNums.clear();
+    else poolNums.clear();
     updateAll(); saveSettings();
   });
 
   document.getElementById('addAnalyzeBtn').addEventListener('click', addAnalyzeRow);
-  addAnalyzeRow();
-
+  addAnalyzeRow(); // 첫 줄 자동 생성
   document.getElementById('copyAllBtn').addEventListener('click', copyAll);
+
   document.getElementById('generateBtn').addEventListener('click',()=>{
     const btn=document.getElementById('generateBtn'), txt=document.getElementById('btnText');
     btn.classList.add('loading'); txt.textContent='생성 중...';
-    setTimeout(()=>{try{renderResults(generateMultiple(generateCount));}finally{btn.classList.remove('loading');txt.textContent='번호 생성';}},10);
+    setTimeout(()=>{ try{renderResults(generateMultiple(generateCount));}finally{btn.classList.remove('loading');txt.textContent='번호 생성';} },10);
   });
 });

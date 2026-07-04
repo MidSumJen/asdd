@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>로또 번호 생성기</title>
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -206,7 +205,7 @@
           </div>
         </section>
 
-        <!-- 고정수 + 제외수 -->
+        <!-- 고정수 + 제외수 + 범위수 -->
         <section class="section">
           <div class="card full-card fixed-card">
             <div class="ball-tab-header">
@@ -216,16 +215,36 @@
               <button class="ball-tab" id="tabExclude">
                 🔴 제외수 <span class="badge-exclude" id="excludeBadge">0개</span>
               </button>
+              <button class="ball-tab" id="tabPool">
+                🔵 범위수 <span class="badge-pool" id="poolBadge">0개</span>
+              </button>
               <button class="clear-fixed-btn" id="clearFixedBtn">초기화</button>
             </div>
+
+            <!-- 고정수 패널 -->
             <div id="fixedPanel">
               <div class="hint" style="margin-bottom:10px;">반드시 포함될 숫자를 클릭해서 선택하세요. (최대 5개)</div>
               <div class="fixed-selected" id="fixedSelected"><span class="fixed-empty">선택된 고정수 없음</span></div>
             </div>
+
+            <!-- 제외수 패널 -->
             <div id="excludePanel" class="hidden">
               <div class="hint" style="margin-bottom:10px;">생성에서 제외할 숫자를 클릭해서 선택하세요.</div>
               <div class="fixed-selected" id="excludeSelected"><span class="fixed-empty">선택된 제외수 없음</span></div>
             </div>
+
+            <!-- 범위수 패널 -->
+            <div id="poolPanel" class="hidden">
+              <div class="pool-hint-row">
+                <div class="hint">선택한 숫자 안에서만 조합을 생성합니다. (최소 6개 이상)</div>
+                <label class="pool-filter-toggle-wrap">
+                  <input type="checkbox" id="poolUseFilter" checked/>
+                  <span class="pool-filter-label">다른 필터 적용</span>
+                </label>
+              </div>
+              <div class="fixed-selected" id="poolSelected"><span class="fixed-empty">선택된 범위수 없음</span></div>
+            </div>
+
             <div class="num-grid" id="numGrid"></div>
           </div>
         </section>

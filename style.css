@@ -201,6 +201,51 @@ header h1 { font-size: 20px; font-weight: 700; color: var(--text); }
   background: var(--red-bg); border: 1px solid var(--red-bd); color: var(--red);
   font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 4px;
 }
+.badge-pool {
+  background: #1a2a3e; border: 1px solid #2d5480; color: #6ab0f5;
+  font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 4px;
+}
+#tabPool.active { background: #1a2535; border-color: #2d5480; color: #6ab0f5; }
+
+.pool-hint-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; margin-bottom: 10px;
+}
+.pool-filter-toggle-wrap {
+  display: flex; align-items: center; gap: 6px;
+  cursor: pointer; flex-shrink: 0; white-space: nowrap;
+}
+.pool-filter-toggle-wrap input[type="checkbox"] { display: none; }
+.pool-filter-label {
+  font-size: 11px; font-weight: 600; color: var(--text3);
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: 6px; padding: 4px 10px; cursor: pointer; transition: all 0.15s;
+  user-select: none;
+}
+.pool-filter-toggle-wrap input:checked + .pool-filter-label {
+  background: var(--accent-bg); border-color: var(--accent); color: var(--accent);
+}
+html[data-theme="light"] .pool-filter-toggle-wrap input:checked + .pool-filter-label {
+  color: #fff; background: var(--accent);
+}
+
+/* 범위수 볼 태그 */
+.pool-tag {
+  border-radius: 50%; width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 800; color: #fff;
+  cursor: pointer; transition: transform 0.1s;
+  outline: 2px solid rgba(106,176,245,0.7); outline-offset: 1px;
+}
+.pool-tag:hover { transform: scale(1.12); filter: brightness(1.15); }
+
+/* 그리드에서 범위수 선택 상태 */
+.ng-btn.ng-selected-pool {
+  opacity: 1;
+  border-color: #fff;
+  box-shadow: 0 0 0 3px rgba(106,176,245,0.7);
+  transform: scale(1.1);
+}
 .clear-fixed-btn {
   background: transparent; border: 1px solid var(--border2);
   border-radius: 6px; color: var(--text3);
@@ -402,49 +447,25 @@ html[data-theme="light"] .analyze-btn { color: #fff; background: var(--accent); 
 /* ── Footer ── */
 .footer { font-size: 11px; color: var(--text4); text-align: center; padding: 12px 0 0; opacity: 0.6; }
 
-/* ── 모바일 반응형 ── */
 @media (max-width: 900px) {
   .page { padding: 0 12px 40px; }
-
   header { padding: 16px 0 14px; }
   .header-icon { font-size: 24px; }
   header h1 { font-size: 17px; }
-
-  .main-layout {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-
-  .right-panel {
-    position: static;
-  }
-
+  .main-layout { grid-template-columns: 1fr; gap: 16px; }
+  .right-panel { position: static; }
   .preset-grid { grid-template-columns: repeat(2, 1fr); }
-
-  .num-grid { grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .num-grid { gap: 4px; }
   .ng-btn { font-size: 11px; max-width: 100%; }
-
   .balls { gap: 4px; }
   .ball { width: 32px; height: 32px; font-size: 12px; }
-
   .analyze-balls .ball { width: 32px; height: 32px; font-size: 12px; }
-
-  .stat-table td,
-  .result-stat-table td { padding: 4px 6px; font-size: 11px; }
-
-  .generate-btn { font-size: 14px; padding: 12px; }
-
-  .count-btn { padding: 5px 10px; font-size: 12px; }
+  .stat-table td, .result-stat-table td { padding: 4px 6px; font-size: 11px; }
 }
-
 @media (max-width: 480px) {
   .filter-label { min-width: 100px; font-size: 12px; }
   .num-input.sm { width: 52px; font-size: 12px; }
   .select-input { min-width: 90px; font-size: 12px; }
-
   .ball { width: 28px; height: 28px; font-size: 11px; }
-  .analyze-balls .ball { width: 30px; height: 30px; font-size: 11px; }
-
-  .num-grid { gap: 3px; }
   .ng-btn { font-size: 10px; }
 }
