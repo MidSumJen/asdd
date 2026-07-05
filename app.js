@@ -155,15 +155,14 @@ function isValid(nums) {
   return true;
 }
 
-// ── 번호 생성 ─────────────────────────────────────────
-function generateOne(maxTries=100000) {
+// ── 번호 생성 (시간 제한 있음 — 무한루프/멈춤 방지) ───
+function generateOne(deadline) {
   const nMin=isOn('numRange')?+document.getElementById('numMin').value:1;
   const nMax=isOn('numRange')?+document.getElementById('numMax').value:45;
   const fixed=[...fixedNums];
   if (fixed.some(n=>n<nMin||n>nMax)) return null;
   const remaining=6-fixed.length;
 
-  // 범위수 6개 이상 선택 시 해당 풀에서만 추출
   const usePool = poolNums.size >= 6;
   const pool=[];
   for (let i=nMin;i<=nMax;i++) {
@@ -173,10 +172,13 @@ function generateOne(maxTries=100000) {
   }
   if (pool.length<remaining) return null;
 
-  // 범위수 탭 활성 && 필터 적용 토글 확인
   const useFilter = !usePool || (document.getElementById('poolUseFilter')?.checked ?? true);
 
+  // 풀이 작을 때 (조합 수가 적을 때) 시도 횟수를 줄여 빠르게 포기
+  const maxTries = pool.length <= 20 ? 5000 : 100000;
+
   for (let t=0;t<maxTries;t++) {
+    if (t % 300 === 0 && performance.now() > deadline) return null; // 시간 초과 시 중단
     const arr=[...pool];
     for (let i=0;i<remaining;i++){const j=i+Math.floor(Math.random()*(arr.length-i));[arr[i],arr[j]]=[arr[j],arr[i]];}
     const pick=[...fixed,...arr.slice(0,remaining)].sort((a,b)=>a-b);
@@ -186,8 +188,16 @@ function generateOne(maxTries=100000) {
 }
 
 function generateMultiple(n) {
-  const results=[],seen=new Set(); let attempts=0;
-  while(results.length<n&&attempts<n*400){attempts++; const nums=generateOne(); if(!nums) continue; const key=nums.join(','); if(!seen.has(key)){seen.add(key);results.push(nums);}}
+  const results=[],seen=new Set();
+  const deadline = performance.now() + 4000; // 전체 4초 제한
+  let attempts=0;
+  while (results.length<n && attempts<n*400 && performance.now()<deadline) {
+    attempts++;
+    const nums=generateOne(deadline);
+    if(!nums) continue;
+    const key=nums.join(',');
+    if(!seen.has(key)){seen.add(key);results.push(nums);}
+  }
   return results;
 }
 
@@ -304,16 +314,29 @@ function updateGridUI() {
   document.querySelectorAll('.ng-btn').forEach(btn=>{
     const n=parseInt(btn.dataset.n);
     const isFixed=fixedNums.has(n), isExclude=excludeNums.has(n), isPool=poolNums.has(n);
-    btn.classList.remove('ng-selected-fixed','ng-selected-exclude','ng-selected-pool','ng-disabled');
-    if(isFixed)   btn.classList.add('ng-selected-fixed');
-    if(isExclude) btn.classList.add('ng-selected-exclude');
-    if(isPool)    btn.classList.add('ng-selected-pool');
-    if(activeTab==='fixed'){
-      if(isExclude||isPool) btn.classList.add('ng-disabled');
-      else if(fixedNums.size>=MAX_FIXED&&!isFixed) btn.classList.add('ng-disabled');
+    btn.classList.remove('ng-selected-fixed','ng-selected-exclude','ng-selected-pool','ng-pool-dot','ng-disabled');
+
+    // 시각 표시: 우선순위는 고정수 > 제외수 > 범위수
+    // (겹칠 경우 실제 생성 로직도 제외수/고정수가 우선 적용됨)
+    if (isFixed) {
+      btn.classList.add('ng-selected-fixed');
+      if (isPool) btn.classList.add('ng-pool-dot'); // 고정수+범위수 겹침 표시
+    } else if (isExclude) {
+      btn.classList.add('ng-selected-exclude');
+      if (isPool) btn.classList.add('ng-pool-dot'); // 제외수+범위수 겹침 표시
+    } else if (isPool) {
+      btn.classList.add('ng-selected-pool');
     }
-    if(activeTab==='exclude'){ if(isFixed||isPool)    btn.classList.add('ng-disabled'); }
-    if(activeTab==='pool'){    if(isFixed||isExclude)  btn.classList.add('ng-disabled'); }
+
+    // 비활성 규칙: 고정수 ↔ 제외수만 서로 배타적, 범위수는 항상 선택 가능
+    if (activeTab==='fixed') {
+      if (isExclude) btn.classList.add('ng-disabled');
+      else if (fixedNums.size>=MAX_FIXED && !isFixed) btn.classList.add('ng-disabled');
+    }
+    if (activeTab==='exclude') {
+      if (isFixed) btn.classList.add('ng-disabled');
+    }
+    // pool 탭은 어떤 경우에도 비활성화하지 않음 — 항상 선택/해제 가능
   });
 }
 
@@ -334,10 +357,19 @@ function updateExcludeSelectedUI() {
 function updatePoolSelectedUI() {
   const sel=document.getElementById('poolSelected'); sel.innerHTML='';
   if(!poolNums.size){sel.innerHTML='<span class="fixed-empty">선택된 범위수 없음</span>';}
-  else{[...poolNums].sort((a,b)=>a-b).forEach(n=>{const t=document.createElement('div');t.className=`pool-tag ng-${ballClass(n)}`;t.textContent=n;t.title=`${n} 클릭 시 해제`;t.onclick=()=>{poolNums.delete(n);updateAll();saveSettings();};sel.appendChild(t);});}
+  else{[...poolNums].sort((a,b)=>a-b).forEach(n=>{
+    const t=document.createElement('div');
+    t.className=`pool-tag ng-${ballClass(n)}`;
+    t.textContent=n;
+    let title=`${n} 클릭 시 해제`;
+    if (fixedNums.has(n)) { t.style.opacity='0.6'; title+=' (고정수와 중복 — 고정수 우선 적용)'; }
+    else if (excludeNums.has(n)) { t.style.opacity='0.4'; t.style.filter='saturate(0.4)'; title+=' (제외수와 중복 — 제외수 우선 적용)'; }
+    t.title=title;
+    t.onclick=()=>{poolNums.delete(n);updateAll();saveSettings();};
+    sel.appendChild(t);
+  });}
   const badge=document.getElementById('poolBadge');
   badge.textContent=poolNums.size>0?`${poolNums.size}개 선택`:'0개';
-  // 6개 미만이면 경고
   if(poolNums.size>0&&poolNums.size<6) badge.style.color='#e07070';
   else badge.style.color='';
 }
@@ -345,16 +377,16 @@ function updatePoolSelectedUI() {
 function updateAll(){ updateFixedSelectedUI(); updateExcludeSelectedUI(); updatePoolSelectedUI(); updateGridUI(); }
 
 function toggleBall(n) {
-  if(activeTab==='fixed'){
-    if(excludeNums.has(n)||poolNums.has(n)) return;
-    if(fixedNums.has(n)) fixedNums.delete(n);
-    else{ if(fixedNums.size>=MAX_FIXED) return; fixedNums.add(n); }
-  } else if(activeTab==='exclude'){
-    if(fixedNums.has(n)||poolNums.has(n)) return;
-    if(excludeNums.has(n)) excludeNums.delete(n); else excludeNums.add(n);
+  if (activeTab==='fixed') {
+    if (excludeNums.has(n)) return; // 고정수 ↔ 제외수만 배타적
+    if (fixedNums.has(n)) fixedNums.delete(n);
+    else { if (fixedNums.size>=MAX_FIXED) return; fixedNums.add(n); }
+  } else if (activeTab==='exclude') {
+    if (fixedNums.has(n)) return; // 고정수 ↔ 제외수만 배타적
+    if (excludeNums.has(n)) excludeNums.delete(n); else excludeNums.add(n);
   } else {
-    if(fixedNums.has(n)||excludeNums.has(n)) return;
-    if(poolNums.has(n)) poolNums.delete(n); else poolNums.add(n);
+    // 범위수는 고정수/제외수와 상관없이 항상 자유롭게 선택 가능
+    if (poolNums.has(n)) poolNums.delete(n); else poolNums.add(n);
   }
   updateAll(); saveSettings();
 }

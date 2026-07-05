@@ -237,10 +237,13 @@
             <div id="poolPanel" class="hidden">
               <div class="pool-hint-row">
                 <div class="hint">선택한 숫자 안에서만 조합을 생성합니다. (최소 6개 이상)</div>
-                <label class="pool-filter-toggle-wrap">
-                  <input type="checkbox" id="poolUseFilter" checked/>
-                  <span class="pool-filter-label">다른 필터 적용</span>
-                </label>
+                <div class="pool-filter-toggle-wrap">
+                  <label class="toggle-wrap">
+                    <input type="checkbox" id="poolUseFilter" checked/>
+                    <span class="toggle-slider"></span>
+                  </label>
+                  <span class="pool-filter-caption">다른 필터 적용</span>
+                </div>
               </div>
               <div class="fixed-selected" id="poolSelected"><span class="fixed-empty">선택된 범위수 없음</span></div>
             </div>

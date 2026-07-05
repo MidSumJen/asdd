@@ -212,21 +212,12 @@ header h1 { font-size: 20px; font-weight: 700; color: var(--text); }
   gap: 10px; margin-bottom: 10px;
 }
 .pool-filter-toggle-wrap {
-  display: flex; align-items: center; gap: 6px;
-  cursor: pointer; flex-shrink: 0; white-space: nowrap;
+  display: flex; align-items: center; gap: 7px;
+  flex-shrink: 0; white-space: nowrap;
 }
-.pool-filter-toggle-wrap input[type="checkbox"] { display: none; }
-.pool-filter-label {
+.pool-filter-caption {
   font-size: 11px; font-weight: 600; color: var(--text3);
-  background: var(--bg3); border: 1px solid var(--border2);
-  border-radius: 6px; padding: 4px 10px; cursor: pointer; transition: all 0.15s;
-  user-select: none;
-}
-.pool-filter-toggle-wrap input:checked + .pool-filter-label {
-  background: var(--accent-bg); border-color: var(--accent); color: var(--accent);
-}
-html[data-theme="light"] .pool-filter-toggle-wrap input:checked + .pool-filter-label {
-  color: #fff; background: var(--accent);
+  user-select: none; cursor: pointer;
 }
 
 /* 범위수 볼 태그 */
@@ -245,6 +236,23 @@ html[data-theme="light"] .pool-filter-toggle-wrap input:checked + .pool-filter-l
   border-color: #fff;
   box-shadow: 0 0 0 3px rgba(106,176,245,0.7);
   transform: scale(1.1);
+}
+
+/* 고정수/제외수와 범위수가 겹칠 때 — 작은 파란 점으로 표시 */
+.ng-btn.ng-pool-dot {
+  position: relative;
+}
+.ng-btn.ng-pool-dot::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; right: -1px;
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: #6ab0f5;
+  border: 1.5px solid #0d0f14;
+}
+html[data-theme="light"] .ng-btn.ng-pool-dot::after {
+  border-color: #f4f6fb;
 }
 .clear-fixed-btn {
   background: transparent; border: 1px solid var(--border2);
