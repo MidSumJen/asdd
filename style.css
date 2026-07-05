@@ -447,6 +447,7 @@ html[data-theme="light"] .analyze-btn { color: #fff; background: var(--accent); 
 /* ── Footer ── */
 .footer { font-size: 11px; color: var(--text4); text-align: center; padding: 12px 0 0; opacity: 0.6; }
 
+/* ── 모바일 반응형 ── */
 @media (max-width: 900px) {
   .page { padding: 0 12px 40px; }
   header { padding: 16px 0 14px; }

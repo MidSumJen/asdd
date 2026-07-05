@@ -97,9 +97,11 @@ function getFormValues() {
   };
 }
 
-function saveSettings() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify([STORAGE_KEY]:getFormValues()}); }
+function saveSettings() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(getFormValues())); } catch(e) {}
+}
 function loadSettings(cb) {
-  try { const raw=localStorage.getItem(STORAGE_KEY); cb(raw?JSON.parse(raw):null); } catch(e) { cb(null); }
+  try { const raw = localStorage.getItem(STORAGE_KEY); cb(raw ? JSON.parse(raw) : null); } catch(e) { cb(null); }
 }
 
 function applyStoredSettings(s) {
